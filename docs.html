@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BedrockForge Studio — Minecraft: Bedrock Edition Add-On Generator</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/components.css" />
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="top-navbar">
+    <div class="brand-wrap">
+      <div class="brand-logo">BF</div>
+      <div>
+        <div class="brand-title">
+          BedrockForge Studio
+          <span class="badge badge-emerald">Bedrock Edition Only</span>
+        </div>
+        <div class="brand-subtitle">Complete Add-On Generator (.mcpack &amp; .mcaddon) • Auto Script API Version Resolver</div>
+      </div>
+    </div>
+
+    <nav class="nav-links">
+      <a href="index.html" class="nav-tab" data-view-target="studio">🛠️ Add-On Builder Studio</a>
+      <a href="docs.html" class="nav-tab active" data-view-target="docs">📚 Script API Version Matrix &amp; Docs</a>
+    </nav>
+
+    <div class="nav-actions">
+      <span id="saveStatusText" class="badge badge-sky">Saved to localStorage</span>
+      <button type="button" id="resetProjectBtn" class="btn btn-sm btn-danger">Reset Project</button>
+    </div>
+  </header>
+
+  <!-- Main Studio Workspace View -->
+  <main id="studioWorkspaceView" class="studio-container" style="display:none;">
+    <div class="studio-grid">
+
+      <!-- COLUMN 1: Addon Config, Version Resolver & Script Modules -->
+      <section class="panel">
+        <div class="panel-header">
+          <div class="panel-title">⚙️ 1. Add-On &amp; Version Configuration</div>
+          <button type="button" id="regenAllUuidsBtn" class="btn btn-xs btn-secondary">🎲 New UUIDs</button>
+        </div>
+        <div class="panel-body">
+
+          <!-- Pack Mode Selector -->
+          <div class="form-label">Select Pack Output Mode</div>
+          <div class="pack-mode-grid">
+            <div class="pack-mode-card active" data-mode="BOTH">
+              <span class="pack-mode-ext">.mcaddon</span>
+              <div class="pack-mode-title">BP + RP Bundled</div>
+            </div>
+            <div class="pack-mode-card" data-mode="BP">
+              <span class="pack-mode-ext">.mcpack</span>
+              <div class="pack-mode-title">Behavior Pack</div>
+            </div>
+            <div class="pack-mode-card" data-mode="RP">
+              <span class="pack-mode-ext">.mcpack</span>
+              <div class="pack-mode-title">Resource Pack</div>
+            </div>
+          </div>
+
+          <!-- Minecraft Version Picker (Auto Module Version Resolver) -->
+          <div class="version-resolution-card">
+            <label class="form-label" for="mcVersionSelect">
+              <span>🎯 Target Minecraft: Bedrock Version</span>
+              <span class="badge badge-emerald">Auto-Resolves Modules</span>
+            </label>
+            <select id="mcVersionSelect" class="form-select"></select>
+
+            <div class="form-row" style="margin-top: 10px;">
+              <div>
+                <label class="form-label" for="releaseTrackSelect">API Release Track</label>
+                <select id="releaseTrackSelect" class="form-select">
+                  <option value="stable">Stable Track (Recommended)</option>
+                  <option value="beta">Beta Track (-beta APIs)</option>
+                  <option value="wildcard">Latest Beta ("beta" wildcard 1.21.120+)</option>
+                </select>
+              </div>
+              <div style="display:flex; flex-direction:column; justify-content:flex-end; gap:6px; padding-bottom:4px;">
+                <label style="display:flex; align-items:center; gap:6px; font-size:12px; cursor:pointer;">
+                  <input type="checkbox" id="autoMatchModulesCheck" checked />
+                  <span>Auto-match module versions</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; font-size:12px; cursor:pointer;">
+                  <input type="checkbox" id="enableScriptingCheck" checked />
+                  <span>Include Script API module</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="version-chip-row">
+              <span id="badgeMinEngine" class="badge badge-emerald">min_engine: [1, 26, 40]</span>
+              <span id="badgeApiGen" class="badge badge-sky">Script API: V2</span>
+              <span id="badgeServerVer" class="badge badge-purple">@minecraft/server: 2.9.0</span>
+              <span id="badgeUiVer" class="badge badge-amber">@minecraft/server-ui: 2.1.0</span>
+            </div>
+            <div id="versionReleaseNotes" class="form-hint" style="margin-top:8px; color:#cbd5e1;"></div>
+          </div>
+
+          <!-- Script API Modules List -->
+          <div class="form-group">
+            <div class="form-label">
+              <span>📦 Script API Dependencies (manifest.json)</span>
+              <span style="font-size:11px; color:var(--text-muted);">Uncheck Auto-match to override</span>
+            </div>
+            <div id="moduleListContainer" class="module-list"></div>
+          </div>
+
+          <!-- Basic Metadata -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="addonNameInput">Add-On Name</label>
+              <input type="text" id="addonNameInput" class="form-input" placeholder="Aether Guardians" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="namespaceInput">Namespace Prefix</label>
+              <input type="text" id="namespaceInput" class="form-input" placeholder="aether" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="addonDescInput">Description</label>
+            <textarea id="addonDescInput" class="form-textarea" rows="2"></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="addonAuthorInput">Author(s)</label>
+              <input type="text" id="addonAuthorInput" class="form-input" placeholder="BedrockCreator" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="addonLicenseSelect">License</label>
+              <select id="addonLicenseSelect" class="form-select">
+                <option value="MIT">MIT License</option>
+                <option value="GPL-3.0">GPL-3.0</option>
+                <option value="CC-BY-4.0">CC-BY-4.0</option>
+                <option value="All Rights Reserved">All Rights Reserved</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="packVerMajor">Pack Version [Maj, Min, Pat]</label>
+              <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px;">
+                <input type="number" id="packVerMajor" class="form-input" min="0" value="1" aria-label="Major Version" />
+                <input type="number" id="packVerMinor" class="form-input" min="0" value="0" aria-label="Minor Version" />
+                <input type="number" id="packVerPatch" class="form-input" min="0" value="0" aria-label="Patch Version" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="scriptEntryInput">Script Entrypoint</label>
+              <input type="text" id="scriptEntryInput" class="form-input" value="scripts/main.js" />
+            </div>
+          </div>
+
+          <div class="form-row" style="margin-bottom:10px;">
+            <label style="display:flex; align-items:center; gap:6px; font-size:12px; cursor:pointer;">
+              <input type="checkbox" id="linkCrossDepCheck" checked />
+              <span>Link BP ↔ RP UUID Dependency</span>
+            </label>
+            <label style="display:flex; align-items:center; gap:6px; font-size:12px; cursor:pointer;">
+              <input type="checkbox" id="enableScriptEvalCheck" />
+              <span>Enable <code>script_eval</code> capability</span>
+            </label>
+          </div>
+
+          <!-- Collapsible UUID Inspector -->
+          <details style="background:var(--bg-primary); padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-default);">
+            <summary style="cursor:pointer; font-size:12px; font-weight:600; color:var(--text-secondary);">🔑 Inspect / Customize Pack UUID v4 Identifiers</summary>
+            <div style="margin-top:10px; display:grid; gap:8px;">
+              <div>
+                <label class="form-label" for="uuidBpHeader" style="font-size:11px;">BP Header UUID</label>
+                <input type="text" id="uuidBpHeader" class="form-input" style="font-family:var(--font-mono); font-size:11px;" readonly />
+              </div>
+              <div>
+                <label class="form-label" for="uuidBpData" style="font-size:11px;">BP Data Module UUID</label>
+                <input type="text" id="uuidBpData" class="form-input" style="font-family:var(--font-mono); font-size:11px;" readonly />
+              </div>
+              <div>
+                <label class="form-label" for="uuidBpScript" style="font-size:11px;">BP Script Module UUID</label>
+                <input type="text" id="uuidBpScript" class="form-input" style="font-family:var(--font-mono); font-size:11px;" readonly />
+              </div>
+              <div>
+                <label class="form-label" for="uuidRpHeader" style="font-size:11px;">RP Header UUID</label>
+                <input type="text" id="uuidRpHeader" class="form-input" style="font-family:var(--font-mono); font-size:11px;" readonly />
+              </div>
+              <div>
+                <label class="form-label" for="uuidRpResources" style="font-size:11px;">RP Resources Module UUID</label>
+                <input type="text" id="uuidRpResources" class="form-input" style="font-family:var(--font-mono); font-size:11px;" readonly />
+              </div>
+            </div>
+          </details>
+
+        </div>
+      </section>
+
+      <!-- COLUMN 2: Complete Folder Tree & Frontend File Uploader -->
+      <section class="panel">
+        <div class="panel-header">
+          <div class="panel-title">🗂️ 2. Add-On Structure</div>
+          <div style="display:flex; gap:6px;">
+            <button type="button" id="openNewFileModalBtn" class="btn btn-xs btn-primary">+ File</button>
+            <button type="button" id="rebuildBoilerplateBtn" class="btn btn-xs btn-secondary" title="Regenerate default files with current namespace">Sync Tree</button>
+          </div>
+        </div>
+        <div class="panel-body" style="padding:10px;">
+          <div id="fileTreeContainer" class="file-tree-root"></div>
+
+          <!-- Frontend File Upload (.png, .json, .js, .lang, .mcfunction) -->
+          <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border-default);">
+            <div class="form-label">📤 Upload Assets (.png, .json, .js)</div>
+            <div class="form-row" style="margin-bottom:8px;">
+              <div>
+                <label class="form-label" for="uploadTargetPackSelect" style="font-size:11px;">Target Pack</label>
+                <select id="uploadTargetPackSelect" class="form-select" style="padding:5px 8px; font-size:12px;">
+                  <option value="BP">Behavior Pack (BP)</option>
+                  <option value="RP">Resource Pack (RP)</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label" for="uploadSubfolderInput" style="font-size:11px;">Subfolder (Optional)</label>
+                <input type="text" id="uploadSubfolderInput" class="form-input" style="padding:5px 8px; font-size:12px;" placeholder="e.g. textures/items" />
+              </div>
+            </div>
+
+            <div id="uploadDropzone" class="upload-dropzone">
+              <div style="font-size:20px; margin-bottom:4px;">📥</div>
+              <div style="font-size:12px; font-weight:600; color:var(--text-primary);">Click or Drag &amp; Drop Files Here</div>
+              <div style="font-size:11px; color:var(--text-muted);">Supports <code>.png</code>, <code>.json</code>, <code>.js</code>, <code>.mcfunction</code>, <code>.lang</code></div>
+              <input type="file" id="fileUploadInput" accept=".png,.json,.js,.mcfunction,.lang" multiple style="display:none;" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- COLUMN 3: Live Code / Manifest / Texture Editor & Export Bar -->
+      <section class="panel panel-MainEditor">
+        <div class="panel-header">
+          <div class="panel-title">📝 3. File Inspector &amp; Pack Exporter</div>
+          <div style="display:flex; gap:8px;">
+            <button type="button" id="formatJsonBtn" class="btn btn-xs btn-secondary">{ } Format &amp; Validate JSON</button>
+            <button type="button" id="deleteActiveFileBtn" class="btn btn-xs btn-danger">🗑️ Delete File</button>
+          </div>
+        </div>
+
+        <div class="editor-toolbar">
+          <div>
+            <span style="color:var(--text-muted); font-size:12px;">Editing: </span>
+            <span id="activeFilePathLabel" class="editor-path">BP/manifest.json</span>
+          </div>
+          <span class="badge badge-emerald">Auto-Synced with LocalStorage</span>
+        </div>
+
+        <div id="codeEditorWrapper">
+          <textarea id="codeEditorTextarea" class="code-editor-textarea" spellcheck="false" aria-label="Code and JSON Editor"></textarea>
+        </div>
+
+        <div id="imagePreviewWrapper" class="image-preview-box" style="display:none;">
+          <img id="previewImageElement" src="" alt="Uploaded Texture Preview" />
+          <div id="previewImageMeta" style="margin-top:12px; font-family:var(--font-mono); font-size:12px; color:var(--text-secondary);"></div>
+        </div>
+
+        <!-- Export Package Bar -->
+        <div class="panel-body" style="border-top:1px solid var(--border-default); background:rgba(15, 23, 42, 0.7);">
+          <div class="form-label">🚀 Export Ready-to-Import Minecraft Bedrock Packages</div>
+          <div class="export-action-bar">
+            <button type="button" id="exportMcaddonBtn" class="btn btn-primary">📦 Export Combined (.mcaddon)</button>
+            <button type="button" id="exportBpMcpackBtn" class="btn btn-amber">⚙️ Export Behavior Pack (.mcpack)</button>
+            <button type="button" id="exportRpMcpackBtn" class="btn btn-sky">🎨 Export Resource Pack (.mcpack)</button>
+            <button type="button" id="exportRawZipBtn" class="btn btn-secondary">🗂️ Export Dev Folders (.zip)</button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <footer class="status-bar">
+      <div><strong>How Version Customization Works:</strong> Pick your target Minecraft Bedrock version above — BedrockForge automatically sets <code>min_engine_version</code>, selects compatible <code>@minecraft/server</code> and <code>@minecraft/server-ui</code> versions, and switches between Script API v1 (<code>worldInitialize</code>) and Script API v2 (<code>system.beforeEvents.startup</code> &amp; <code>worldLoad</code>).</div>
+      <div>100% Client-Side Frontend • LocalStorage Persistence</div>
+    </footer>
+  </main>
+
+
+  <!-- Documentation & Official Version Matrix View -->
+  <section id="docsReferenceView" class="studio-container">
+    <div class="panel" style="margin-bottom:20px;">
+      <div class="panel-header">
+        <div class="panel-title">📚 Official Minecraft: Bedrock Edition Script API Module Version Matrix</div>
+        <span class="badge badge-emerald">Grounded in Microsoft Learn Creator Docs</span>
+      </div>
+      <div class="panel-body">
+        <p style="color:var(--text-secondary); margin-bottom:14px;">
+          In Minecraft: Bedrock Edition, script modules inside <code>BP/manifest.json</code> use Semantic Versioning (<code>major.minor.patch</code>) that increments independently of the base game version. When a user selects their Minecraft Bedrock version in BedrockForge Studio, the generator automatically queries the registry below to populate <code>min_engine_version</code> and the exact <code>@minecraft/server</code> and <code>@minecraft/server-ui</code> dependency versions.
+        </p>
+
+        <div class="docs-table-wrap">
+          <table class="docs-table">
+            <thead>
+              <tr>
+                <th>Minecraft Bedrock Version</th>
+                <th>min_engine_version</th>
+                <th>Script API Gen</th>
+                <th>@minecraft/server (Stable / Beta)</th>
+                <th>@minecraft/server-ui (Stable / Beta)</th>
+                <th>"beta" Wildcard</th>
+                <th>Key Creator &amp; API Highlights</th>
+              </tr>
+            </thead>
+            <tbody id="versionDocsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">⚡ Script API v1 vs. Script API v2 (1.21.90+)</div>
+        </div>
+        <div class="panel-body" style="color:var(--text-secondary); font-size:13px; display:grid; gap:10px;">
+          <p><strong>Script API v1.x (Minecraft 1.19.70 – 1.21.80):</strong> Uses <code>@minecraft/server</code> <code>1.0.0</code> to <code>1.19.0</code> and <code>@minecraft/server-ui</code> <code>1.0.0</code> to <code>1.3.0</code>. Custom components are registered inside <code>world.beforeEvents.worldInitialize</code>, and entities/blocks use <code>entity.isValid()</code> as a method.</p>
+          <p><strong>Script API v2.x (Minecraft 1.21.90 – 1.26.x+):</strong> Uses <code>@minecraft/server</code> <code>2.0.0+</code> and <code>@minecraft/server-ui</code> <code>2.0.0+</code>. Scripts execute before the world loads: custom components register in <code>system.beforeEvents.startup</code>, world initialization listens to <code>world.afterEvents.worldLoad</code>, and <code>isValid</code> is now a boolean property instead of a method.</p>
+          <p><strong>"beta" Wildcard Support (Minecraft 1.21.120+):</strong> Creators testing Beta APIs can set <code>"version": "beta"</code> in <code>manifest.json</code> dependencies so the pack automatically uses the latest beta module without manual version bumps each preview.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">📁 Standard Bedrock Add-On Folder Architecture</div>
+        </div>
+        <div class="panel-body" style="color:var(--text-secondary); font-size:13px; display:grid; gap:10px;">
+          <p><strong>Behavior Pack (<code>_BP.mcpack</code>):</strong> Contains server-side logic and data: <code>manifest.json</code> (with <code>data</code> and <code>script</code> modules), <code>pack_icon.png</code>, <code>scripts/main.js</code>, <code>items/*.json</code>, <code>blocks/*.json</code>, <code>entities/*.json</code>, <code>recipes/*.json</code>, <code>functions/*.mcfunction</code>, and <code>texts/en_US.lang</code>.</p>
+          <p><strong>Resource Pack (<code>_RP.mcpack</code>):</strong> Contains client-side visuals and audio: <code>manifest.json</code> (with <code>resources</code> module), <code>pack_icon.png</code>, <code>textures/item_texture.json</code>, <code>textures/terrain_texture.json</code>, <code>textures/items/*.png</code>, <code>textures/blocks/*.png</code>, <code>blocks.json</code>, <code>sounds/sound_definitions.json</code>, and <code>texts/en_US.lang</code>.</p>
+          <p><strong>Combined Add-On (<code>.mcaddon</code>):</strong> Bundles both <code>_BP.mcpack</code> and <code>_RP.mcpack</code> with cross-linked <code>dependencies</code> UUIDs so Minecraft imports and activates both packs together with a single click.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modal for Creating a New Virtual File -->
+  <div id="newFileModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="newFileModalTitle">
+    <div class="modal-card">
+      <div class="panel-header">
+        <div id="newFileModalTitle" class="panel-title">➕ Add New File to Pack</div>
+        <button type="button" id="closeNewFileModalBtn" class="btn btn-xs btn-secondary">✕</button>
+      </div>
+      <div class="panel-body">
+        <div class="form-group">
+          <label class="form-label" for="newFilePackSelect">Target Pack</label>
+          <select id="newFilePackSelect" class="form-select">
+            <option value="BP">Behavior Pack (BP)</option>
+            <option value="RP">Resource Pack (RP)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="newFilePathInput">Relative File Path</label>
+          <input type="text" id="newFilePathInput" class="form-input" placeholder="e.g. items/emerald_blade.json or scripts/utils.js" />
+          <div class="form-hint">Folders are created automatically based on the path you enter.</div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:14px;">
+          <button type="button" id="confirmNewFileBtn" class="btn btn-primary">Create File</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script src="scripts/version-data.js"></script>
+  <script src="scripts/zip-builder.js"></script>
+  <script src="scripts/templates.js"></script>
+  <script src="scripts/storage.js"></script>
+  <script src="scripts/app.js"></script>
+</body>
+</html>
